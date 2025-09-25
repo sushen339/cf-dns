@@ -10,7 +10,10 @@ const App = () => {
   const [zones, setZones] = useState([]);
   const [selectedZoneId, setSelectedZoneId] = useState('');
   const [dnsRecords, setDnsRecords] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+
+  const [isLoadingZones, setIsLoadingZones] = useState(false);
+  const [isLoadingRecords, setIsLoadingRecords] = useState(false);
+
   const [error, setError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeRecord, setActiveRecord] = useState(null);
@@ -21,23 +24,27 @@ const App = () => {
     [zones, selectedZoneId]
   );
 
+  const isLoading = useMemo(
+    () => isLoadingZones || isLoadingRecords,
+    [isLoadingZones, isLoadingRecords]
+  );
+
   const handleError = (message) => {
     setError(message || 'Unexpected error, please try again.');
   };
 
-
   const fetchZones = useCallback(async () => {
     try {
-      setIsLoading(true);
+      setIsLoadingZones(true);
       setError('');
       const response = await api.get('/zones');
-
       setZones(response.data || []);
     } catch (err) {
       handleError(err.response?.data?.message || err.message);
     } finally {
-      setIsLoading(false);
+      setIsLoadingZones(false);
     }
+  }, []);
 
   const fetchDnsRecords = useCallback(async (zoneId) => {
     if (!zoneId) {
@@ -45,16 +52,16 @@ const App = () => {
       return;
     }
     try {
-      setIsLoading(true);
+      setIsLoadingRecords(true);
       setError('');
       const response = await api.get(`/zones/${zoneId}/dns_records`);
       setDnsRecords(response.data);
     } catch (err) {
       handleError(err.response?.data?.message || err.message);
+      setDnsRecords([]);
     } finally {
-      setIsLoading(false);
+      setIsLoadingRecords(false);
     }
-    
   }, []);
 
   useEffect(() => {
@@ -69,20 +76,15 @@ const App = () => {
     }
 
     const hasSelectedZone = zones.some((zone) => zone.id === selectedZoneId);
-    if (!hasSelectedZone) {
-      setSelectedZoneId(zones[0].id);
-    }
-  }, [zones, selectedZoneId]);
+    const nextZoneId = hasSelectedZone ? selectedZoneId : zones[0].id;
 
-  useEffect(() => {
-    if (!selectedZoneId) {
-      setDnsRecords([]);
+    if (!hasSelectedZone) {
+      setSelectedZoneId(nextZoneId);
       return;
     }
 
-    fetchDnsRecords(selectedZoneId);
-  }, [selectedZoneId, fetchDnsRecords]);
-
+    fetchDnsRecords(nextZoneId);
+  }, [zones, selectedZoneId, fetchDnsRecords]);
 
   const handleZoneChange = (event) => {
     setSelectedZoneId(event.target.value);
@@ -108,14 +110,14 @@ const App = () => {
     if (!confirmed || !selectedZoneId) return;
 
     try {
-      setIsLoading(true);
+      setIsLoadingRecords(true);
       setError('');
       await api.delete(`/zones/${selectedZoneId}/dns_records/${record.id}`);
       await fetchDnsRecords(selectedZoneId);
     } catch (err) {
       handleError(err.response?.data?.message || err.message);
     } finally {
-      setIsLoading(false);
+      setIsLoadingRecords(false);
     }
   };
 
