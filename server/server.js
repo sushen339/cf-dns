@@ -1,3 +1,4 @@
+
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
@@ -75,6 +76,7 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
+
 // Ensure Cloudflare API credentials are available before hitting the API.
 const ensureTokenConfigured = (_req, res, next) => {
   if (!process.env.CLOUDFLARE_API_TOKEN) {
@@ -96,6 +98,7 @@ app.get('/api/zones', async (_req, res, next) => {
   try {
     const zones = await fetchPaginatedResults('/zones', { perPage: 50 });
     res.json(zones);
+
   } catch (error) {
     next(error);
   }
@@ -104,10 +107,12 @@ app.get('/api/zones', async (_req, res, next) => {
 // Retrieve DNS records for a given zone.
 app.get('/api/zones/:zoneId/dns_records', async (req, res, next) => {
   try {
+
     const records = await fetchPaginatedResults(`/zones/${req.params.zoneId}/dns_records`, {
       perPage: 100
     });
     res.json(records);
+
   } catch (error) {
     next(error);
   }
@@ -150,7 +155,6 @@ app.delete('/api/zones/:zoneId/dns_records/:recordId', async (req, res, next) =>
     next(error);
   }
 });
-
 // When the production build of the client exists, serve it as static assets.
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
@@ -164,6 +168,7 @@ if (fs.existsSync(distPath)) {
     res.sendFile(path.join(distPath, 'index.html'));
   });
 }
+
 
 // Centralized error handler to ensure consistent error responses to the client.
 app.use((error, _req, res, _next) => {
