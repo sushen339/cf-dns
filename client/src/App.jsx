@@ -25,18 +25,19 @@ const App = () => {
     setError(message || 'Unexpected error, please try again.');
   };
 
+
   const fetchZones = useCallback(async () => {
     try {
       setIsLoading(true);
       setError('');
       const response = await api.get('/zones');
+
       setZones(response.data || []);
     } catch (err) {
       handleError(err.response?.data?.message || err.message);
     } finally {
       setIsLoading(false);
     }
-  }, []);
 
   const fetchDnsRecords = useCallback(async (zoneId) => {
     if (!zoneId) {
@@ -53,6 +54,7 @@ const App = () => {
     } finally {
       setIsLoading(false);
     }
+    
   }, []);
 
   useEffect(() => {
@@ -80,6 +82,7 @@ const App = () => {
 
     fetchDnsRecords(selectedZoneId);
   }, [selectedZoneId, fetchDnsRecords]);
+
 
   const handleZoneChange = (event) => {
     setSelectedZoneId(event.target.value);
