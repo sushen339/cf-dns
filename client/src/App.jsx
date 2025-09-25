@@ -10,10 +10,8 @@ const App = () => {
   const [zones, setZones] = useState([]);
   const [selectedZoneId, setSelectedZoneId] = useState('');
   const [dnsRecords, setDnsRecords] = useState([]);
-
   const [isLoadingZones, setIsLoadingZones] = useState(false);
   const [isLoadingRecords, setIsLoadingRecords] = useState(false);
-
   const [error, setError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeRecord, setActiveRecord] = useState(null);
@@ -29,8 +27,16 @@ const App = () => {
     [isLoadingZones, isLoadingRecords]
   );
 
-  const handleError = (message) => {
-    setError(message || 'Unexpected error, please try again.');
+  const extractErrorMessage = (err) => {
+    const payload = err?.response?.data;
+    if (Array.isArray(payload?.errors) && payload.errors.length > 0) {
+      return payload.errors.map((item) => item.message).join('\n');
+    }
+    return payload?.message || err?.message || 'Unexpected error, please try again.';
+  };
+
+  const handleError = (err) => {
+    setError(extractErrorMessage(err));
   };
 
   const fetchZones = useCallback(async () => {
@@ -40,7 +46,7 @@ const App = () => {
       const response = await api.get('/zones');
       setZones(response.data || []);
     } catch (err) {
-      handleError(err.response?.data?.message || err.message);
+      handleError(err);
     } finally {
       setIsLoadingZones(false);
     }
@@ -57,7 +63,7 @@ const App = () => {
       const response = await api.get(`/zones/${zoneId}/dns_records`);
       setDnsRecords(response.data);
     } catch (err) {
-      handleError(err.response?.data?.message || err.message);
+      handleError(err);
       setDnsRecords([]);
     } finally {
       setIsLoadingRecords(false);
@@ -115,7 +121,7 @@ const App = () => {
       await api.delete(`/zones/${selectedZoneId}/dns_records/${record.id}`);
       await fetchDnsRecords(selectedZoneId);
     } catch (err) {
-      handleError(err.response?.data?.message || err.message);
+      handleError(err);
     } finally {
       setIsLoadingRecords(false);
     }
@@ -138,7 +144,7 @@ const App = () => {
       closeModal();
       await fetchDnsRecords(selectedZoneId);
     } catch (err) {
-      handleError(err.response?.data?.message || err.message);
+      handleError(err);
     } finally {
       setIsSubmitting(false);
     }

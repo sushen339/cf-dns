@@ -1,3 +1,5 @@
+
+const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
@@ -15,6 +17,7 @@ if (!process.env.CLOUDFLARE_API_TOKEN) {
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+const distPath = path.resolve(__dirname, '../client/dist');
 
 app.use(
   cors({
@@ -42,7 +45,6 @@ const cloudflareApi = axios.create({
  * Cloudflare consistently wraps data in `{ success, result, errors, messages }`.
  */
 const unwrapResult = (response) => response?.data?.result || [];
-
 
 /**
  * Cloudflare paginates zone and DNS record responses. This helper fetches and
@@ -153,6 +155,20 @@ app.delete('/api/zones/:zoneId/dns_records/:recordId', async (req, res, next) =>
     next(error);
   }
 });
+// When the production build of the client exists, serve it as static assets.
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      next();
+      return;
+    }
+
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
+
 
 // Centralized error handler to ensure consistent error responses to the client.
 app.use((error, _req, res, _next) => {
