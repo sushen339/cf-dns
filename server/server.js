@@ -43,15 +43,60 @@ const cloudflareApi = axios.create({
  */
 const unwrapResult = (response) => response?.data?.result || [];
 
+
+/**
+ * Cloudflare paginates zone and DNS record responses. This helper fetches and
+ * aggregates every page so the client always receives the full collection.
+ */
+const fetchPaginatedResults = async (url, { perPage = 100, params = {} } = {}) => {
+  let page = 1;
+  let totalPages = 1;
+  const allResults = [];
+
+  do {
+    const response = await cloudflareApi.get(url, {
+      params: {
+        per_page: perPage,
+        page,
+        ...params
+      }
+    });
+
+    allResults.push(...unwrapResult(response));
+    totalPages = response?.data?.result_info?.total_pages || 1;
+    page += 1;
+  } while (page <= totalPages);
+
+  return allResults;
+};
+
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
+
+// Ensure Cloudflare API credentials are available before hitting the API.
+const ensureTokenConfigured = (_req, res, next) => {
+  if (!process.env.CLOUDFLARE_API_TOKEN) {
+    res.status(500).json({
+      success: false,
+      message:
+        'Cloudflare API token is not configured on the server. Please set CLOUDFLARE_API_TOKEN and restart the service.'
+    });
+    return;
+  }
+
+  next();
+};
+
+app.use('/api', ensureTokenConfigured);
+
 // Fetch every zone that belongs to the authenticated Cloudflare account.
 app.get('/api/zones', async (_req, res, next) => {
   try {
-    const response = await cloudflareApi.get('/zones');
-    res.json(unwrapResult(response));
+    const zones = await fetchPaginatedResults('/zones', { perPage: 50 });
+    res.json(zones);
+
   } catch (error) {
     next(error);
   }
@@ -60,8 +105,12 @@ app.get('/api/zones', async (_req, res, next) => {
 // Retrieve DNS records for a given zone.
 app.get('/api/zones/:zoneId/dns_records', async (req, res, next) => {
   try {
-    const response = await cloudflareApi.get(`/zones/${req.params.zoneId}/dns_records`);
-    res.json(unwrapResult(response));
+
+    const records = await fetchPaginatedResults(`/zones/${req.params.zoneId}/dns_records`, {
+      perPage: 100
+    });
+    res.json(records);
+
   } catch (error) {
     next(error);
   }

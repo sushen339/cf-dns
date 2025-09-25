@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import RecordForm from './components/RecordForm.jsx';
 
@@ -25,23 +25,21 @@ const App = () => {
     setError(message || 'Unexpected error, please try again.');
   };
 
-  const fetchZones = async () => {
+
+  const fetchZones = useCallback(async () => {
     try {
       setIsLoading(true);
       setError('');
       const response = await api.get('/zones');
-      setZones(response.data);
-      if (response.data?.length && !selectedZoneId) {
-        setSelectedZoneId(response.data[0].id);
-      }
+
+      setZones(response.data || []);
     } catch (err) {
       handleError(err.response?.data?.message || err.message);
     } finally {
       setIsLoading(false);
     }
-  };
 
-  const fetchDnsRecords = async (zoneId) => {
+  const fetchDnsRecords = useCallback(async (zoneId) => {
     if (!zoneId) {
       setDnsRecords([]);
       return;
@@ -56,18 +54,35 @@ const App = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchZones();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, []);
 
   useEffect(() => {
-    if (selectedZoneId) {
-      fetchDnsRecords(selectedZoneId);
+    fetchZones();
+  }, [fetchZones]);
+
+  useEffect(() => {
+    if (!zones.length) {
+      setSelectedZoneId('');
+      setDnsRecords([]);
+      return;
     }
-  }, [selectedZoneId]);
+
+    const hasSelectedZone = zones.some((zone) => zone.id === selectedZoneId);
+    if (!hasSelectedZone) {
+      setSelectedZoneId(zones[0].id);
+    }
+  }, [zones, selectedZoneId]);
+
+  useEffect(() => {
+    if (!selectedZoneId) {
+      setDnsRecords([]);
+      return;
+    }
+
+    fetchDnsRecords(selectedZoneId);
+  }, [selectedZoneId, fetchDnsRecords]);
+
 
   const handleZoneChange = (event) => {
     setSelectedZoneId(event.target.value);
