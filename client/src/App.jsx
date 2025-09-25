@@ -10,8 +10,10 @@ const App = () => {
   const [zones, setZones] = useState([]);
   const [selectedZoneId, setSelectedZoneId] = useState('');
   const [dnsRecords, setDnsRecords] = useState([]);
+
   const [isLoadingZones, setIsLoadingZones] = useState(false);
   const [isLoadingRecords, setIsLoadingRecords] = useState(false);
+
   const [error, setError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeRecord, setActiveRecord] = useState(null);

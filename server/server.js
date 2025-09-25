@@ -43,6 +43,7 @@ const cloudflareApi = axios.create({
  */
 const unwrapResult = (response) => response?.data?.result || [];
 
+
 /**
  * Cloudflare paginates zone and DNS record responses. This helper fetches and
  * aggregates every page so the client always receives the full collection.
@@ -73,6 +74,7 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
+
 // Ensure Cloudflare API credentials are available before hitting the API.
 const ensureTokenConfigured = (_req, res, next) => {
   if (!process.env.CLOUDFLARE_API_TOKEN) {
@@ -94,6 +96,7 @@ app.get('/api/zones', async (_req, res, next) => {
   try {
     const zones = await fetchPaginatedResults('/zones', { perPage: 50 });
     res.json(zones);
+
   } catch (error) {
     next(error);
   }
@@ -102,10 +105,12 @@ app.get('/api/zones', async (_req, res, next) => {
 // Retrieve DNS records for a given zone.
 app.get('/api/zones/:zoneId/dns_records', async (req, res, next) => {
   try {
+
     const records = await fetchPaginatedResults(`/zones/${req.params.zoneId}/dns_records`, {
       perPage: 100
     });
     res.json(records);
+
   } catch (error) {
     next(error);
   }
